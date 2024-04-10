@@ -1,41 +1,79 @@
 #include "nwpwin.h"
 #include "res.h"
 
-// TODO: prepare classes (edit, button, list_box) for child windows
-// TODO: derive from window, override class_name
+// prepare classes (edit, button, list_box) for child windows
+class list_box : public vsite::nwp::window {
+	std::string class_name() override { return "listBox"; };
+};
 
+class edit : public vsite::nwp::window {
+	std::string class_name() override { return "edit"; };
+};
+
+class button : public vsite::nwp::window {
+	std::string class_name() override { return "button"; };
+};
+
+// derive from window, override class_name
 class main_window : public vsite::nwp::window
 {
 protected:
 	int on_create(CREATESTRUCT* pcs) override;
 	void on_command(int id) override;
 	void on_destroy() override;
+
+private:
+	edit editList;
+	list_box listBox;
+	button addButton;
+	button removeButton;
 };
+
+
 
 int main_window::on_create(CREATESTRUCT* pcs)
 {
-	// TODO: create all child windows
-	// TODO: disable "Remove" button
+	// create all child windows
+	listBox.create(*this, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, IDC_LB, 15, 15, 130, 120);
+	editList.create(*this, WS_CHILD | WS_VISIBLE | WS_BORDER, 0, IDC_EDIT, 160, 15, 130, 25);
+	addButton.create(*this, WS_CHILD | WS_VISIBLE | WS_BORDER, "Add", IDC_ADD, 160, 50, 130, 25);
+	removeButton.create(*this, WS_CHILD | WS_VISIBLE | WS_BORDER, "Remove", IDC_REMOVE, 160, 85, 130, 25);
+	// disable "Remove" button
+	EnableWindow(removeButton, FALSE);
 	return 0;
 }
 
 void main_window::on_command(int id){
 	switch(id){
 		case ID_FILE_EXIT:
-			// TODO: close main window
+			// close main window
+			DestroyWindow(*this);
 			break;
 		case ID_HELP_ABOUT:
-			// TODO: show dialog with text
+			// show dialog with text
+			MessageBox(*this, "Add button adds text to list, remove button removes text from the list.", "Help", MB_OK | MB_ICONINFORMATION);
 			break;
 		case IDC_ADD:
-			// TODO: get text from edit control
-			// TODO: add string to listbox control
-			// TODO: enable "Remove" button
+			// get text from edit control
+			char text[15];
+			GetDlgItemText(*this, IDC_EDIT, text, sizeof(text));
+			// add string to listbox control
+			SendDlgItemMessage(*this, IDC_LB, LB_ADDSTRING, 0, (LPARAM)text);
+			// enable "Remove" button
+			EnableWindow(removeButton, TRUE);
 			break;
 		case IDC_REMOVE:
-			// TODO: get listbox selection
-			// TODO: if there is a selection, delete selected string
-			// TODO: disable "Remove" button if listbox is empty
+			// get listbox selection
+			int selectedIndex = SendMessage(listBox, LB_GETCURSEL, 0, 0);
+			// if there is a selection, delete selected string
+			if (selectedIndex != LB_ERR) {
+				SendMessage(listBox, LB_DELETESTRING, selectedIndex, 0);
+			}
+			// disable "Remove" button if listbox is empty
+			int n = SendMessage(listBox, LB_GETCOUNT, 0, 0);
+			if (n == 0) {
+				EnableWindow(removeButton, FALSE);
+			}
 			break;
 	}
 }
@@ -47,7 +85,7 @@ void main_window::on_destroy(){
 int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 {
 	main_window w; 
-	w.create(0, WS_OVERLAPPEDWINDOW | WS_VISIBLE, "NWP 2", (int)::LoadMenu(instance, MAKEINTRESOURCE(IDM_V2)));
+	w.create(0, WS_OVERLAPPEDWINDOW | WS_VISIBLE, "NWP 2", (int)::LoadMenu(instance, MAKEINTRESOURCE(IDM_V2)), 800, 300, 330, 205);
 	vsite::nwp::set_icons(instance, w, IDI_V2);
 	vsite::nwp::application app;
 	return app.run();
